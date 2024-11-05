@@ -72,10 +72,19 @@ defmodule Cachex.Services.Courier do
       nil ->
         case Get.execute(cache, key, []) do
           {:ok, nil} ->
+            owner = cache(cache, :name) |> Process.whereis()
             parent = self()
+
+            callers =
+              case Process.get(:"$callers") do
+                [_ | _] = list -> [owner | list]
+                _ -> [owner]
+              end
 
             worker =
               spawn_link(fn ->
+                Process.put(:"$callers", callers)
+
                 result =
                   try do
                     task.()

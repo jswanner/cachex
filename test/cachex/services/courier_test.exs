@@ -58,6 +58,27 @@ defmodule Cachex.Services.CourierTest do
     assert retrieved == {:ok, "my_value"}
   end
 
+  test "dispatched task has Courier pid in $callers" do
+    # start a new cache
+    cache = TestUtils.create_cache()
+    cache = Services.Overseer.retrieve(cache)
+
+    # get pid of cache
+    pid =
+      cache
+      |> cache(:name)
+      |> Process.whereis()
+
+    # dispatch an arbitrary task
+    result =
+      Services.Courier.dispatch(cache, "my_key", fn ->
+        Process.get(:"$callers")
+      end)
+
+    # check the $callers includes cache pid
+    assert result == {:commit, [pid]}
+  end
+
   test "gracefully handling crashes inside tasks" do
     # start a new cache
     cache = TestUtils.create_cache()
